@@ -435,8 +435,6 @@ contract AxonSwapPool is IAxonSwapPool {
 
         Slot0 memory slot0Start = slot0;
 
-        require(slot0Start.unlocked, 'LOK');
-
         require(
             zeroForOne
                 ? sqrtPriceLimitX96 < slot0Start.sqrtPriceX96 && sqrtPriceLimitX96 > TickMath.MIN_SQRT_RATIO

@@ -4,6 +4,7 @@ pragma solidity >=0.5.0;
 import './FullMath.sol';
 import './FixedPoint96.sol';
 import './SafeCast.sol';
+import './UnsafeMath.sol';
 
 /// @title Functions based on Q64.96 sqrt price and liquidity
 /// @notice Contains the math that uses square root of price as a Q64.96 and liquidity to compute deltas
@@ -219,15 +220,5 @@ library SqrtPriceMath {
             liquidity < 0
                 ? -int256(getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(-liquidity), false))
                 : int256(getAmount1Delta(sqrtRatioAX96, sqrtRatioBX96, uint128(liquidity), true));
-    }
-}
-
-/// @title Math functions that do not check inputs or outputs
-library UnsafeMath {
-    /// @notice Returns ceil(x / y)
-    function divRoundingUp(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        assembly {
-            z := add(div(x, y), gt(mod(x, y), 0))
-        }
     }
 }

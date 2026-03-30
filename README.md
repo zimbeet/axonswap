@@ -138,27 +138,28 @@ axonswap/
 │   ├── tailwind.config.ts
 │   └── package.json
 ├── contracts/                          # Solidity Smart Contracts
-│   ├── core/
-│   │   ├── AxonSwapFactory.sol         # Pool factory (CREATE2)
-│   │   ├── AxonSwapPool.sol            # Concentrated liquidity AMM
-│   │   ├── AxonSwapPoolDeployer.sol    # Pool deployer
-│   │   └── interfaces/                 # 9 interface files
-│   ├── periphery/
-│   │   ├── SwapRouter.sol              # Single & multi-hop swaps
-│   │   ├── NonfungiblePositionManager.sol  # ERC-721 positions
-│   │   ├── Quoter.sol                  # On-chain price quotes
-│   │   ├── QuoterV2.sol                # Enhanced quotes
-│   │   ├── TickLens.sol                # Tick data reader
-│   │   └── interfaces/                 # 4 interface files
-│   ├── tokens/
-│   │   ├── WAXON.sol                   # Wrapped AXON (ERC-20)
-│   │   └── Multicall.sol               # Batch calls
-│   ├── libraries/                      # 16 math/utility libraries
-│   │   ├── TickMath.sol
-│   │   ├── SqrtPriceMath.sol
-│   │   ├── FullMath.sol
-│   │   ├── SwapMath.sol
-│   │   └── ...
+│   ├── src/
+│   │   ├── core/
+│   │   │   ├── AxonSwapFactory.sol     # Pool factory (CREATE2)
+│   │   │   ├── AxonSwapPool.sol        # Concentrated liquidity AMM
+│   │   │   ├── AxonSwapPoolDeployer.sol# Pool deployer
+│   │   │   └── interfaces/             # 9 interface files
+│   │   ├── periphery/
+│   │   │   ├── SwapRouter.sol          # Single & multi-hop swaps
+│   │   │   ├── NonfungiblePositionManager.sol  # ERC-721 positions
+│   │   │   ├── Quoter.sol              # On-chain price quotes
+│   │   │   ├── QuoterV2.sol            # Enhanced quotes
+│   │   │   ├── TickLens.sol            # Tick data reader
+│   │   │   └── interfaces/             # 4 interface files
+│   │   ├── tokens/
+│   │   │   ├── WAXON.sol               # Wrapped AXON (ERC-20)
+│   │   │   └── Multicall.sol           # Batch calls
+│   │   └── libraries/                  # 16 math/utility libraries
+│   │       ├── TickMath.sol
+│   │       ├── SqrtPriceMath.sol
+│   │       ├── FullMath.sol
+│   │       ├── SwapMath.sol
+│   │       └── ...
 │   ├── test/                           # Hardhat tests
 │   ├── scripts/deploy.js               # Deployment script
 │   ├── hardhat.config.js

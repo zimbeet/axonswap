@@ -3,6 +3,12 @@ require("@nomiclabs/hardhat-ethers");
 require("dotenv").config();
 
 module.exports = {
+  paths: {
+    sources: "./src",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+  },
   solidity: {
     compilers: [
       {

@@ -144,8 +144,8 @@ library Tick {
 
         // when the lower (upper) tick is crossed left to right (right to left), liquidity must be added (removed)
         info.liquidityNet = upper
-            ? int256(info.liquidityNet).sub(liquidityDelta).toInt128()
-            : int256(info.liquidityNet).add(liquidityDelta).toInt128();
+            ? int128(int256(info.liquidityNet) - int256(liquidityDelta))
+            : int128(int256(info.liquidityNet) + int256(liquidityDelta));
     }
 
     /// @notice Clears tick data
@@ -183,13 +183,3 @@ library Tick {
     }
 }
 
-/// @title SafeCast helper for int256
-library SafeCastHelper {
-    function add(int256 a, int128 b) internal pure returns (int256) {
-        return a + int256(b);
-    }
-
-    function sub(int256 a, int128 b) internal pure returns (int256) {
-        return a - int256(b);
-    }
-}
