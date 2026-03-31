@@ -1,6 +1,6 @@
 import { InputHTMLAttributes, forwardRef } from "react";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "prefix"> {
   label?: string;
   error?: string;
   suffix?: React.ReactNode;
