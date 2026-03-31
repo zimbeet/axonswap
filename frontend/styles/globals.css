@@ -96,3 +96,96 @@ body::before {
   pointer-events: none;
   z-index: 0;
 }
+
+/* ─── Animations ─────────────────────────────────── */
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes slide-in {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { text-shadow: 0 0 8px rgba(54,177,255,0.4); }
+  50%       { text-shadow: 0 0 20px rgba(54,177,255,0.8), 0 0 40px rgba(106,117,255,0.4); }
+}
+
+@keyframes rotate-180 {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(180deg); }
+}
+
+@keyframes ripple {
+  0%   { transform: scale(0);   opacity: 0.5; }
+  100% { transform: scale(2.5); opacity: 0;   }
+}
+
+.animate-slide-in  { animation: slide-in  0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in   { animation: fade-in   0.25s ease-out both; }
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+/* Card hover glow border */
+.card-hover-glow {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-hover-glow:hover {
+  box-shadow: 0 0 0 1px rgba(54,177,255,0.25), 0 8px 40px rgba(0,0,0,0.5);
+}
+
+/* Button ripple */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255,255,255,0.1);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.btn-ripple:active::after {
+  opacity: 1;
+  animation: ripple 0.4s ease-out;
+}
+
+/* Slider thumb */
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(54,177,255,0.3);
+  transition: box-shadow 0.2s;
+}
+input[type='range']::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 5px rgba(54,177,255,0.4);
+}
+input[type='range']::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(54,177,255,0.3);
+}
+input[type='range'] {
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+}

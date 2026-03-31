@@ -1,162 +1,41 @@
-export const CONTRACT_ADDRESSES = {
-  WAXON: "" as `0x${string}`,
-  FACTORY: "" as `0x${string}`,
-  SWAP_ROUTER: "" as `0x${string}`,
-  POSITION_MANAGER: "" as `0x${string}`,
-  QUOTER: "" as `0x${string}`,
-  QUOTER_V2: "" as `0x${string}`,
-  TICK_LENS: "" as `0x${string}`,
-  MULTICALL: "" as `0x${string}`,
+import { ERC20_ABI } from "./abis/erc20";
+import { FACTORY_ABI } from "./abis/factory";
+import { ROUTER_ABI } from "./abis/router";
+import { QUOTER_V2_ABI, QUOTER_ABI } from "./abis/quoter";
+import { POSITION_MANAGER_ABI } from "./abis/position-manager";
+import { POOL_ABI } from "./abis/pool";
+
+// Re-export ABIs for convenience
+export {
+  ERC20_ABI,
+  FACTORY_ABI,
+  ROUTER_ABI,
+  QUOTER_ABI,
+  QUOTER_V2_ABI,
+  POSITION_MANAGER_ABI,
+  POOL_ABI,
 };
 
-export const QUOTER_V2_ABI = [
-  {
-    inputs: [
-      {
-        components: [
-          { name: "tokenIn", type: "address" },
-          { name: "tokenOut", type: "address" },
-          { name: "amountIn", type: "uint256" },
-          { name: "fee", type: "uint24" },
-          { name: "sqrtPriceLimitX96", type: "uint160" },
-        ],
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "quoteExactInputSingle",
-    outputs: [
-      { name: "amountOut", type: "uint256" },
-      { name: "sqrtPriceX96After", type: "uint160" },
-      { name: "initializedTicksCrossed", type: "uint32" },
-      { name: "gasEstimate", type: "uint256" },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
+// Backwards-compat aliases used by existing swap components
+export const SWAP_ROUTER_ABI = ROUTER_ABI;
 
 export const WAXON_ABI = [
-  {
-    inputs: [],
-    name: "deposit",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "wad", type: "uint256" }],
-    name: "withdraw",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "owner", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
+  { inputs: [], name: "deposit", outputs: [], stateMutability: "payable", type: "function" },
+  { inputs: [{ name: "wad", type: "uint256" }], name: "withdraw", outputs: [], stateMutability: "nonpayable", type: "function" },
+  { inputs: [{ name: "owner", type: "address" }], name: "balanceOf", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" },
 ] as const;
 
-export const ERC20_ABI = [
-  {
-    inputs: [{ name: "owner", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "approve",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "spender", type: "address" },
-    ],
-    name: "allowance",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "decimals",
-    outputs: [{ name: "", type: "uint8" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "symbol",
-    outputs: [{ name: "", type: "string" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "name",
-    outputs: [{ name: "", type: "string" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
-
-export const SWAP_ROUTER_ABI = [
-  {
-    inputs: [
-      {
-        components: [
-          { name: "tokenIn", type: "address" },
-          { name: "tokenOut", type: "address" },
-          { name: "fee", type: "uint24" },
-          { name: "recipient", type: "address" },
-          { name: "deadline", type: "uint256" },
-          { name: "amountIn", type: "uint256" },
-          { name: "amountOutMinimum", type: "uint256" },
-          { name: "sqrtPriceLimitX96", type: "uint160" },
-        ],
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "exactInputSingle",
-    outputs: [{ name: "amountOut", type: "uint256" }],
-    stateMutability: "payable",
-    type: "function",
-  },
-] as const;
-
-export const FACTORY_ABI = [
-  {
-    inputs: [
-      { name: "tokenA", type: "address" },
-      { name: "tokenB", type: "address" },
-      { name: "fee", type: "uint24" },
-    ],
-    name: "createPool",
-    outputs: [{ name: "pool", type: "address" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { name: "tokenA", type: "address" },
-      { name: "tokenB", type: "address" },
-      { name: "fee", type: "uint24" },
-    ],
-    name: "getPool",
-    outputs: [{ name: "pool", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
+/**
+ * Contract addresses — populated from environment variables after deployment.
+ * Set NEXT_PUBLIC_* variables (see frontend/.env.example) to activate on-chain features.
+ */
+export const CONTRACT_ADDRESSES = {
+  WAXON: (process.env.NEXT_PUBLIC_WAXON_ADDRESS ?? "") as `0x${string}`,
+  FACTORY: (process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? "") as `0x${string}`,
+  SWAP_ROUTER: (process.env.NEXT_PUBLIC_SWAP_ROUTER_ADDRESS ?? "") as `0x${string}`,
+  POSITION_MANAGER: (process.env.NEXT_PUBLIC_POSITION_MANAGER_ADDRESS ?? "") as `0x${string}`,
+  QUOTER: (process.env.NEXT_PUBLIC_QUOTER_ADDRESS ?? "") as `0x${string}`,
+  QUOTER_V2: (process.env.NEXT_PUBLIC_QUOTER_V2_ADDRESS ?? "") as `0x${string}`,
+  TICK_LENS: (process.env.NEXT_PUBLIC_TICK_LENS_ADDRESS ?? "") as `0x${string}`,
+  MULTICALL: (process.env.NEXT_PUBLIC_MULTICALL_ADDRESS ?? "") as `0x${string}`,
+};

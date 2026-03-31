@@ -1,217 +1,148 @@
-# ⚡ AxonSwap
+# AxonSwap ⚡
 
-> The native decentralized exchange on **Axonchain** — Uniswap V3 concentrated liquidity AMM for AI Agents.
+> The native decentralized exchange (DEX) on [Axonchain](https://axonchain.ai) — a concentrated liquidity AMM forked from Uniswap V3.
 
-![Chain](https://img.shields.io/badge/Chain-Axon%20Mainnet-36B1FF)
-![Chain ID](https://img.shields.io/badge/Chain%20ID-8210-6A75FF)
-![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green)
+[![CI](https://github.com/zimbeet/axonswap/actions/workflows/ci.yml/badge.svg)](https://github.com/zimbeet/axonswap/actions/workflows/ci.yml)
 
 ---
 
-## Architecture
+## Project Architecture
 
 ```
-┌─────────────────┐     RPC (Chain ID: 8210)     ┌─────────────────┐
-│   Next.js 14    │ ──────────────────────────▶   │   Axonchain     │
-│   Frontend      │     wagmi + viem              │   Smart         │
-│   (TypeScript)  │ ◀──────────────────────────   │   Contracts     │
-└─────────────────┘                               └─────────────────┘
-        │                                                 │
-  RainbowKit Wallet                                 Solidity 0.7.6
-  Tailwind CSS                                      + 0.8.20
-  Dark Sci-Fi Theme                                 Hardhat
+axonswap/
+├── frontend/                 # Next.js 15 app (App Router, TypeScript, Tailwind CSS)
+│   ├── app/
+│   │   ├── swap/page.tsx     # Token swap interface
+│   │   ├── pool/page.tsx     # Pool list & My Positions
+│   │   ├── add/page.tsx      # Add liquidity
+│   │   └── remove/page.tsx   # Remove liquidity
+│   ├── components/
+│   │   ├── ui/               # Button, Card, Modal, Input, Skeleton, ToastContainer
+│   │   ├── layout/           # Navbar, Footer
+│   │   ├── swap/             # TokenSelectorModal, SettingsPanel, ConfirmSwapModal, TransactionHistory
+│   │   ├── pool/             # PoolCard, PositionCard
+│   │   └── liquidity/        # FeeSelector, PriceRangeInput, LiquidityPreview, PercentageSlider
+│   ├── hooks/                # useSwap, useTokenApproval, useSwapExecution, usePoolList,
+│   │                         # usePositions, useLiquidity, usePriceRange, useToast,
+│   │                         # useTransactionHistory, useTokenBalance, useDebounce
+│   └── lib/
+│       ├── axonchain.ts      # Wagmi chain definition (Chain ID 8210)
+│       ├── contracts.ts      # Contract addresses + re-exported ABIs
+│       ├── tokens.ts         # Token list
+│       ├── utils.ts          # Helpers
+│       └── abis/             # factory, pool, router, position-manager, quoter, erc20
+│
+└── contracts/                # Hardhat project — Uniswap V3 fork
+    ├── src/
+    │   ├── core/             # AxonSwapFactory, AxonSwapPool, AxonSwapPoolDeployer
+    │   ├── periphery/        # SwapRouter, NonfungiblePositionManager, Quoter, QuoterV2, TickLens
+    │   ├── tokens/           # WAXON (Wrapped AXON), Multicall
+    │   ├── libraries/        # TickMath, SqrtPriceMath, FullMath, Oracle, …
+    │   └── interfaces/       # All Solidity interfaces
+    ├── scripts/
+    │   └── deploy.js         # Full deployment script
+    └── test/                 # WAXON, Factory, Router tests
 ```
 
-**Zero backend** — all DEX logic lives on-chain; the frontend interacts directly via RPC.
+---
+
+## Chain Info
+
+| Property    | Value                                  |
+|-------------|----------------------------------------|
+| Chain ID    | `8210`                                 |
+| RPC         | `https://mainnet-rpc.axonchain.ai/`    |
+| Explorer    | `https://explorer.axonchain.ai`        |
+| Native coin | `AXON` (18 decimals)                   |
 
 ---
 
-## Tech Stack
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Frontend** | Next.js 14+ (App Router) | SSR, routing |
-| **Styling** | Tailwind CSS v3 | Axon dark sci-fi theme |
-| **Chain** | wagmi v2 + viem | EVM interaction |
-| **Wallet** | RainbowKit | Wallet connection UI |
-| **Contracts** | Solidity 0.7.6 / 0.8.20 | Core AMM, Router, NFT Positions |
-| **Dev Tools** | Hardhat | Compile, test, deploy |
-
----
-
-## Chain Configuration
-
-| Parameter | Value |
-|-----------|-------|
-| **Chain Name** | Axon Mainnet |
-| **Chain ID** | `8210` |
-| **RPC URL** | `https://mainnet-rpc.axonchain.ai/` |
-| **Native Token** | AXON (18 decimals) |
-| **Explorer** | `https://explorer.axonchain.ai` |
-| **Wrapped Token** | WAXON |
-
----
-
-## Quick Start
+## Local Development
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- Node.js 20+
+- npm
 
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/zimbeet/axonswap.git
-cd axonswap
-```
-
-### 2. Smart Contracts
-
-```bash
-cd contracts
-npm install
-npx hardhat compile
-npx hardhat test
-```
-
-### 3. Deploy (Axon Mainnet)
-
-```bash
-cp .env.example .env
-# Edit .env with your deployer private key
-npx hardhat run scripts/deploy.js --network axon
-```
-
-### 4. Frontend
+### Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+
+# Copy env template and fill in deployed contract addresses
+cp .env.example .env.local
+
+npm run dev        # http://localhost:3000
+npm run build      # production build
+npm run lint       # ESLint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to the Swap page.
+### Contracts
 
----
+```bash
+cd contracts
+npm install
 
-## Contract Addresses
+# Compile
+npx hardhat compile
 
-> Addresses will be populated after deployment.
+# Run tests
+npx hardhat test
 
-| Contract | Address |
-|----------|---------|
-| WAXON | `TBD` |
-| AxonSwapFactory | `TBD` |
-| SwapRouter | `TBD` |
-| NonfungiblePositionManager | `TBD` |
-| Quoter | `TBD` |
-| QuoterV2 | `TBD` |
-| TickLens | `TBD` |
-| Multicall | `TBD` |
-
----
-
-## Directory Structure
-
-```
-axonswap/
-├── README.md
-├── .gitignore
-├── frontend/                           # Next.js 14+ Frontend
-│   ├── app/
-│   │   ├── layout.tsx                  # Root layout with providers
-│   │   ├── page.tsx                    # Redirects to /swap
-│   │   ├── providers.tsx               # WagmiProvider + RainbowKit
-│   │   ├── swap/page.tsx               # Swap page
-│   │   ├── pool/page.tsx               # Pool list
-│   │   └── add/page.tsx                # Add liquidity
-│   ├── components/
-│   │   ├── ui/                         # Button, Card, Modal, Input
-│   │   ├── layout/                     # Navbar, Footer
-│   │   └── wallet/                     # ConnectButton
-│   ├── lib/
-│   │   ├── axonchain.ts                # Chain definition (ID: 8210)
-│   │   ├── contracts.ts                # ABIs & addresses
-│   │   └── tokens.ts                   # Default token list
-│   ├── styles/globals.css              # Tailwind + Axon CSS variables
-│   ├── tailwind.config.ts
-│   └── package.json
-├── contracts/                          # Solidity Smart Contracts
-│   ├── src/
-│   │   ├── core/
-│   │   │   ├── AxonSwapFactory.sol     # Pool factory (CREATE2)
-│   │   │   ├── AxonSwapPool.sol        # Concentrated liquidity AMM
-│   │   │   ├── AxonSwapPoolDeployer.sol# Pool deployer
-│   │   │   └── interfaces/             # 9 interface files
-│   │   ├── periphery/
-│   │   │   ├── SwapRouter.sol          # Single & multi-hop swaps
-│   │   │   ├── NonfungiblePositionManager.sol  # ERC-721 positions
-│   │   │   ├── Quoter.sol              # On-chain price quotes
-│   │   │   ├── QuoterV2.sol            # Enhanced quotes
-│   │   │   ├── TickLens.sol            # Tick data reader
-│   │   │   └── interfaces/             # 4 interface files
-│   │   ├── tokens/
-│   │   │   ├── WAXON.sol               # Wrapped AXON (ERC-20)
-│   │   │   └── Multicall.sol           # Batch calls
-│   │   └── libraries/                  # 16 math/utility libraries
-│   │       ├── TickMath.sol
-│   │       ├── SqrtPriceMath.sol
-│   │       ├── FullMath.sol
-│   │       ├── SwapMath.sol
-│   │       └── ...
-│   ├── test/                           # Hardhat tests
-│   ├── scripts/deploy.js               # Deployment script
-│   ├── hardhat.config.js
-│   └── package.json
+# Deploy to Axon Mainnet (requires funded deployer key)
+cp .env.example .env
+# Edit .env: set PRIVATE_KEY and AXON_RPC_URL
+npx hardhat run scripts/deploy.js --network axon
 ```
 
----
-
-## Smart Contracts Overview
-
-### Core (Solidity 0.7.6)
-
-- **AxonSwapFactory** — Creates and registers liquidity pools via CREATE2. Default fee tiers: 0.05% (500), 0.3% (3000), 1% (10000).
-- **AxonSwapPool** — Full concentrated liquidity AMM with mint/burn/swap/flash/observe functions and TWAP oracle.
-- **AxonSwapPoolDeployer** — Deploys pools with deterministic addresses.
-
-### Periphery (Solidity 0.7.6)
-
-- **SwapRouter** — exactInputSingle, exactInput (multi-hop), exactOutputSingle, exactOutput with deadline and slippage protection.
-- **NonfungiblePositionManager** — ERC-721 based position management: mint, increaseLiquidity, decreaseLiquidity, collect, burn.
-- **Quoter / QuoterV2** — On-chain price quotation using try/catch revert pattern.
-- **TickLens** — Batch read tick data for UI display.
-
-### Tokens (Solidity 0.8.20)
-
-- **WAXON** — Wrapped AXON following WETH9 pattern.
-- **Multicall** — Batch multiple contract calls into one transaction.
-
-### Libraries
-
-TickMath, SqrtPriceMath, FullMath, SwapMath, LiquidityMath, LiquidityAmounts, Oracle, Position, Tick, TickBitmap, BitMath, FixedPoint96, FixedPoint128, SafeCast, UnsafeMath, TransferHelper.
+After deployment, copy the generated `contracts/deployed-addresses.json` addresses into `frontend/.env.local`.
 
 ---
 
-## Frontend Pages
+## Environment Variables
 
-- **`/swap`** — Token swap interface with from/to inputs, direction flip, price display, slippage tolerance.
-- **`/pool`** — Pool list table with TVL/volume/APR + My Positions section.
-- **`/add`** — 4-step add liquidity: pair selection → fee tier → price range → deposit amounts.
+Create `frontend/.env.local` (copy from `frontend/.env.example`):
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_WAXON_ADDRESS` | Deployed WAXON contract |
+| `NEXT_PUBLIC_FACTORY_ADDRESS` | AxonSwapFactory |
+| `NEXT_PUBLIC_SWAP_ROUTER_ADDRESS` | SwapRouter |
+| `NEXT_PUBLIC_POSITION_MANAGER_ADDRESS` | NonfungiblePositionManager |
+| `NEXT_PUBLIC_QUOTER_ADDRESS` | Quoter |
+| `NEXT_PUBLIC_QUOTER_V2_ADDRESS` | QuoterV2 |
+| `NEXT_PUBLIC_TICK_LENS_ADDRESS` | TickLens |
+| `NEXT_PUBLIC_MULTICALL_ADDRESS` | Multicall |
+| `NEXT_PUBLIC_USDC_ADDRESS` | USDC token |
+| `NEXT_PUBLIC_USDT_ADDRESS` | USDT token |
+| `NEXT_PUBLIC_WBTC_ADDRESS` | WBTC token |
+| `NEXT_PUBLIC_WETH_ADDRESS` | WETH token |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect project ID (optional) |
 
 ---
 
-## Fee Tiers
+## Deployment
 
-| Fee | Tick Spacing | Best For |
-|-----|-------------|----------|
-| 0.05% (500) | 10 | Stable pairs |
-| 0.3% (3000) | 60 | Most pairs |
-| 1% (10000) | 200 | Exotic pairs |
+### Vercel (Frontend)
+
+1. Import the `axonswap` GitHub repo in Vercel.
+2. Set **Root Directory** to `frontend`.
+3. Add all `NEXT_PUBLIC_*` environment variables.
+4. Deploy — the `frontend/vercel.json` config handles the rest.
+
+---
+
+## Contributing
+
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feat/my-feature`.
+3. Commit your changes (Conventional Commits style: `feat:`, `fix:`, `chore:`).
+4. Open a Pull Request against `main`.
+5. CI must pass (lint + build + contract tests) before merging.
 
 ---
 
 ## License
 
-GPL-2.0-or-later
+MIT
