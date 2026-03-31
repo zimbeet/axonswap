@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { Modal } from "@/components/ui/Modal";
-import { Token, DEFAULT_TOKEN_LIST, isNativeToken } from "@/lib/tokens";
+import { Token, DEFAULT_TOKEN_LIST, isNativeToken, COMMON_TOKENS } from "@/lib/tokens";
 import { ERC20_ABI } from "@/lib/contracts";
 import { isAddress } from "@/lib/utils";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
@@ -16,8 +16,6 @@ interface TokenSelectorModalProps {
   disabledToken: Token | null;
   chainId: number;
 }
-
-const COMMON_SYMBOLS = ["AXON", "WAXON", "USDC", "USDT"];
 
 function TokenLogo({ token }: { token: Token }) {
   const colors: Record<string, string> = {
@@ -173,7 +171,7 @@ export function TokenSelectorModal({
   };
 
   const commonTokens = DEFAULT_TOKEN_LIST.filter((t) =>
-    COMMON_SYMBOLS.includes(t.symbol)
+    COMMON_TOKENS.includes(t.symbol)
   );
 
   return (

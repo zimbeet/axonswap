@@ -27,7 +27,8 @@ export function useSwapExecution(
   fromAmount: string,
   toAmount: string,
   slippage: number,
-  deadline: number
+  deadline: number,
+  feeTier: number | null
 ): SwapExecutionResult {
   const { address } = useAccount();
 
@@ -94,7 +95,7 @@ export function useSwapExecution(
         {
           tokenIn,
           tokenOut,
-          fee: 3000,
+          fee: feeTier ?? 3000,
           recipient: address,
           deadline: deadlineTs,
           amountIn,

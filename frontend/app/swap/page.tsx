@@ -18,6 +18,9 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { Token, AXON_CHAIN_ID, isNativeToken } from "@/lib/tokens";
 import { CONTRACT_ADDRESSES } from "@/lib/contracts";
 
+/** Gas reserve for native AXON swaps to avoid sweeping all funds */
+const NATIVE_GAS_BUFFER = parseUnits("0.001", 18);
+
 function ArrowDownIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -138,7 +141,7 @@ export default function SwapPage() {
     txHash,
     reset: resetSwap,
     error: swapError,
-  } = useSwapExecution(fromToken, toToken, fromAmount, toAmount, slippage, deadline);
+  } = useSwapExecution(fromToken, toToken, fromAmount, toAmount, slippage, deadline, feeTier);
 
   const contractsDeployed = !!CONTRACT_ADDRESSES.SWAP_ROUTER;
   const hasAmount = !!fromAmount && Number(fromAmount) > 0;
@@ -159,8 +162,7 @@ export default function SwapPage() {
     if (!fromToken || fromBalance === 0n) return;
     let maxVal = fromBalance;
     if (isNativeToken(fromToken)) {
-      const gasBuffer = parseUnits("0.001", 18);
-      maxVal = maxVal > gasBuffer ? maxVal - gasBuffer : 0n;
+      maxVal = maxVal > NATIVE_GAS_BUFFER ? maxVal - NATIVE_GAS_BUFFER : 0n;
     }
     const decimals = fromToken.decimals;
     const divisor = 10 ** decimals;

@@ -3,11 +3,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { useReadContract } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
-import { Token, DEFAULT_TOKEN_LIST, isNativeToken, WAXON } from "@/lib/tokens";
+import { Token, DEFAULT_TOKEN_LIST, isNativeToken } from "@/lib/tokens";
 import { CONTRACT_ADDRESSES, QUOTER_V2_ABI } from "@/lib/contracts";
 import { useDebounce } from "./useDebounce";
 
 const FEE_TIERS = [500, 3000, 10000] as const;
+type FeeTier = (typeof FEE_TIERS)[number];
 
 export interface SwapState {
   fromToken: Token | null;
@@ -39,6 +40,25 @@ function effectiveAddress(token: Token | null): `0x${string}` | undefined {
   return (token.address as `0x${string}`) || undefined;
 }
 
+function buildArgs(
+  fromAddr: `0x${string}` | undefined,
+  toAddr: `0x${string}` | undefined,
+  amountIn: bigint | undefined,
+  fee: FeeTier
+) {
+  if (!fromAddr || !toAddr || !amountIn) return undefined;
+  return [
+    {
+      tokenIn: fromAddr,
+      tokenOut: toAddr,
+      amountIn,
+      fee,
+      sqrtPriceLimitX96: BigInt(0),
+    },
+  ] as const;
+}
+
+/** Try all three fee tiers simultaneously; pick the first that returns a valid result */
 export function useSwap(): SwapState {
   const [fromToken, setFromToken] = useState<Token | null>(
     DEFAULT_TOKEN_LIST[0] ?? null
@@ -50,150 +70,149 @@ export function useSwap(): SwapState {
   const [toAmount, setToAmount] = useState("");
   const [slippage, setSlippage] = useState(0.5);
   const [deadline, setDeadline] = useState(20);
-  const [isQuoting, setIsQuoting] = useState(false);
-  const [quoteError, setQuoteError] = useState<string | null>(null);
   const [priceImpact, setPriceImpact] = useState<number | null>(null);
   const [executionPrice, setExecutionPrice] = useState<string | null>(null);
   const [feeTier, setFeeTier] = useState<number | null>(null);
   const [gasEstimate, setGasEstimate] = useState<bigint | null>(null);
-  const [activeFee, setActiveFee] = useState<(typeof FEE_TIERS)[number]>(500);
 
   const debouncedAmount = useDebounce(fromAmount, 300);
 
   const fromAddr = effectiveAddress(fromToken);
   const toAddr = effectiveAddress(toToken);
 
-  const contractsDeployed =
-    !!CONTRACT_ADDRESSES.QUOTER_V2 && !!fromAddr && !!toAddr;
+  const contractsDeployed = !!CONTRACT_ADDRESSES.QUOTER_V2;
+  const quoteEnabled =
+    contractsDeployed &&
+    !!fromAddr &&
+    !!toAddr &&
+    fromAddr !== toAddr &&
+    !!debouncedAmount &&
+    Number(debouncedAmount) > 0;
 
-  const amountInParsed =
-    debouncedAmount && fromToken && Number(debouncedAmount) > 0
-      ? (() => {
-          try {
-            return parseUnits(debouncedAmount, fromToken.decimals);
-          } catch {
-            return undefined;
-          }
-        })()
-      : undefined;
+  const amountInParsed: bigint | undefined = quoteEnabled
+    ? (() => {
+        try {
+          return parseUnits(debouncedAmount, fromToken!.decimals);
+        } catch {
+          return undefined;
+        }
+      })()
+    : undefined;
 
-  const { data: quoteData, error: quoteErr } = useReadContract({
+  // Query all three fee tiers simultaneously — no state-driven retry needed
+  const args500 = buildArgs(fromAddr, toAddr, amountInParsed, 500);
+  const args3000 = buildArgs(fromAddr, toAddr, amountInParsed, 3000);
+  const args10000 = buildArgs(fromAddr, toAddr, amountInParsed, 10000);
+
+  const { data: quote500, isLoading: loading500, error: err500 } = useReadContract({
     address: CONTRACT_ADDRESSES.QUOTER_V2,
     abi: QUOTER_V2_ABI,
     functionName: "quoteExactInputSingle",
-    args:
-      contractsDeployed && amountInParsed && fromAddr && toAddr
-        ? [
-            {
-              tokenIn: fromAddr,
-              tokenOut: toAddr,
-              amountIn: amountInParsed,
-              fee: activeFee,
-              sqrtPriceLimitX96: 0n,
-            },
-          ]
-        : undefined,
+    args: args500,
+    query: { enabled: quoteEnabled && !!args500, retry: false },
+  });
+
+  const { data: quote3000, isLoading: loading3000, error: err3000 } = useReadContract({
+    address: CONTRACT_ADDRESSES.QUOTER_V2,
+    abi: QUOTER_V2_ABI,
+    functionName: "quoteExactInputSingle",
+    args: args3000,
+    query: { enabled: quoteEnabled && !!args3000 && !!err500, retry: false },
+  });
+
+  const { data: quote10000, isLoading: loading10000, error: err10000 } = useReadContract({
+    address: CONTRACT_ADDRESSES.QUOTER_V2,
+    abi: QUOTER_V2_ABI,
+    functionName: "quoteExactInputSingle",
+    args: args10000,
     query: {
-      enabled:
-        contractsDeployed &&
-        !!amountInParsed &&
-        !!fromAddr &&
-        !!toAddr &&
-        fromAddr !== toAddr,
+      enabled: quoteEnabled && !!args10000 && !!err500 && !!err3000,
       retry: false,
     },
   });
 
+  const isQuoting =
+    quoteEnabled &&
+    (loading500 ||
+      (!!err500 && loading3000) ||
+      (!!err500 && !!err3000 && loading10000));
+
+  // Determine best quote
+  const bestQuote: { data: unknown; tier: FeeTier } | null = quote500
+    ? { data: quote500, tier: 500 }
+    : quote3000
+    ? { data: quote3000, tier: 3000 }
+    : quote10000
+    ? { data: quote10000, tier: 10000 }
+    : null;
+
+  const noLiquidity =
+    quoteEnabled &&
+    !isQuoting &&
+    !bestQuote &&
+    !!err500 &&
+    !!err3000 &&
+    !!err10000;
+
+  const quoteError: string | null = !contractsDeployed
+    ? "Contracts not deployed"
+    : noLiquidity
+    ? "Insufficient liquidity"
+    : null;
+
+  // Derive output amount and price info
   useEffect(() => {
-    if (!debouncedAmount || !fromToken || !toToken || !amountInParsed) {
+    if (!bestQuote || !toToken || !fromToken || !debouncedAmount) {
       setToAmount("");
-      setQuoteError(null);
       setPriceImpact(null);
       setExecutionPrice(null);
       setFeeTier(null);
       setGasEstimate(null);
-      setIsQuoting(false);
       return;
     }
+    const [amountOut, , , gas] = bestQuote.data as [bigint, bigint, number, bigint];
+    const outFormatted = formatUnits(amountOut, toToken.decimals);
+    setToAmount(outFormatted);
+    setGasEstimate(gas);
+    setFeeTier(bestQuote.tier);
 
-    if (!contractsDeployed) {
-      setToAmount("");
-      setQuoteError("Contracts not deployed");
-      setIsQuoting(false);
-      return;
+    const inNum = Number(debouncedAmount);
+    const outNum = Number(outFormatted);
+    if (inNum > 0 && outNum > 0) {
+      setExecutionPrice((outNum / inNum).toFixed(6));
     }
+    // Price impact requires spot price data (not available from quoter alone)
+    setPriceImpact(null);
+  }, [bestQuote, toToken, fromToken, debouncedAmount]);
 
-    setIsQuoting(true);
-
-    if (quoteErr) {
-      // Try next fee tier
-      const idx = FEE_TIERS.indexOf(activeFee);
-      if (idx < FEE_TIERS.length - 1) {
-        setActiveFee(FEE_TIERS[idx + 1]);
-      } else {
-        setIsQuoting(false);
-        setToAmount("");
-        setQuoteError("Insufficient liquidity");
-        setFeeTier(null);
-      }
-      return;
-    }
-
-    if (quoteData) {
-      const [amountOut, , , gas] = quoteData as [
-        bigint,
-        bigint,
-        number,
-        bigint
-      ];
-      const outFormatted = formatUnits(amountOut, toToken.decimals);
-      setToAmount(outFormatted);
-      setGasEstimate(gas);
-      setFeeTier(activeFee);
-      setQuoteError(null);
-      setIsQuoting(false);
-
-      // Execution price
-      const inNum = Number(debouncedAmount);
-      const outNum = Number(outFormatted);
-      if (inNum > 0 && outNum > 0) {
-        const price = outNum / inNum;
-        setExecutionPrice(price.toFixed(6));
-        // Approximate price impact: we don't have the spot price, so skip for now
-        setPriceImpact(null);
-      }
-    }
-  }, [
-    quoteData,
-    quoteErr,
-    debouncedAmount,
-    fromToken,
-    toToken,
-    amountInParsed,
-    contractsDeployed,
-    activeFee,
-  ]);
-
-  // Reset fee tier when tokens change
+  // Reset when tokens change or amount is cleared
   useEffect(() => {
-    setActiveFee(500);
     setToAmount("");
-    setQuoteError(null);
     setPriceImpact(null);
     setExecutionPrice(null);
     setFeeTier(null);
+    setGasEstimate(null);
   }, [fromToken, toToken]);
 
+  useEffect(() => {
+    if (!fromAmount) {
+      setToAmount("");
+      setPriceImpact(null);
+      setExecutionPrice(null);
+      setFeeTier(null);
+      setGasEstimate(null);
+    }
+  }, [fromAmount]);
+
   const flipTokens = useCallback(() => {
-    setFromToken(toToken);
-    setToToken(fromToken);
+    setFromToken((prev) => toToken);
+    setToToken((prev) => fromToken);
     setFromAmount("");
     setToAmount("");
-    setQuoteError(null);
     setPriceImpact(null);
     setExecutionPrice(null);
     setFeeTier(null);
-    setActiveFee(500);
+    setGasEstimate(null);
   }, [fromToken, toToken]);
 
   return {
