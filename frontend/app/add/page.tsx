@@ -57,7 +57,7 @@ export default function AddLiquidityPage() {
   const [token0SelectorOpen, setToken0SelectorOpen] = useState(false);
   const [token1SelectorOpen, setToken1SelectorOpen] = useState(false);
 
-  const priceRange = usePriceRange(token0, token1);
+  const priceRange = usePriceRange(token0, token1, fee);
 
   const canPreview =
     token0 && token1 &&
