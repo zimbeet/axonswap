@@ -1,8 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { useAccount } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { parseUnits } from "viem";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { TokenSelectorModal } from "@/components/swap/TokenSelectorModal";
+import { SettingsPanel } from "@/components/swap/SettingsPanel";
+import { ConfirmSwapModal } from "@/components/swap/ConfirmSwapModal";
+import { SwapPriceInfo } from "@/components/swap/SwapPriceInfo";
+import { TokenBalance } from "@/components/swap/TokenBalance";
+import { useSwap } from "@/hooks/useSwap";
+import { useTokenApproval } from "@/hooks/useTokenApproval";
+import { useSwapExecution } from "@/hooks/useSwapExecution";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { Token, AXON_CHAIN_ID, isNativeToken } from "@/lib/tokens";
+import { CONTRACT_ADDRESSES } from "@/lib/contracts";
 
 function ArrowDownIcon() {
   return (
@@ -46,18 +60,234 @@ function ChevronDownIcon() {
   );
 }
 
-export default function SwapPage() {
-  const [fromAmount, setFromAmount] = useState("");
-  const [toAmount, setToAmount] = useState("");
-  const [fromToken] = useState("AXON");
-  const [toToken] = useState("USDT");
-  const [flipped, setFlipped] = useState(false);
+interface TokenButtonProps {
+  token: Token | null;
+  onClick: () => void;
+}
 
-  const handleFlip = () => {
-    setFlipped(!flipped);
-    setFromAmount(toAmount);
-    setToAmount(fromAmount);
+function TokenButton({ token, onClick }: TokenButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm flex-shrink-0 transition-all"
+      style={{
+        background: token
+          ? "rgba(54,177,255,0.1)"
+          : "linear-gradient(135deg, rgba(54,177,255,0.2), rgba(106,117,255,0.2))",
+        color: "var(--accent-blue)",
+        border: "1px solid rgba(54,177,255,0.2)",
+      }}
+    >
+      <span>{token ? token.symbol : "Select token"}</span>
+      <ChevronDownIcon />
+    </button>
+  );
+}
+
+export default function SwapPage() {
+  const { isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
+
+  const {
+    fromToken,
+    toToken,
+    fromAmount,
+    toAmount,
+    slippage,
+    deadline,
+    isQuoting,
+    quoteError,
+    priceImpact,
+    executionPrice,
+    feeTier,
+    gasEstimate,
+    setFromToken,
+    setToToken,
+    setFromAmount,
+    setSlippage,
+    setDeadline,
+    flipTokens,
+  } = useSwap();
+
+  const [fromSelectorOpen, setFromSelectorOpen] = useState(false);
+  const [toSelectorOpen, setToSelectorOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const { balance: fromBalance } = useTokenBalance(fromToken);
+
+  const fromAmountParsed =
+    fromToken && fromAmount
+      ? (() => {
+          try {
+            return parseUnits(fromAmount, fromToken.decimals);
+          } catch {
+            return 0n;
+          }
+        })()
+      : 0n;
+
+  const { needsApproval, approve, status: approvalStatus } = useTokenApproval(
+    fromToken,
+    fromAmountParsed
+  );
+
+  const {
+    execute: executeSwap,
+    status: swapStatus,
+    txHash,
+    reset: resetSwap,
+    error: swapError,
+  } = useSwapExecution(fromToken, toToken, fromAmount, toAmount, slippage, deadline);
+
+  const contractsDeployed = !!CONTRACT_ADDRESSES.SWAP_ROUTER;
+  const hasAmount = !!fromAmount && Number(fromAmount) > 0;
+  const hasQuote = !!toAmount && !quoteError;
+  const sameToken =
+    fromToken &&
+    toToken &&
+    fromToken.symbol === toToken.symbol &&
+    fromToken.address === toToken.address;
+
+  const insufficientBalance =
+    isConnected &&
+    hasAmount &&
+    fromBalance > 0n &&
+    fromAmountParsed > fromBalance;
+
+  const handleMax = () => {
+    if (!fromToken || fromBalance === 0n) return;
+    let maxVal = fromBalance;
+    if (isNativeToken(fromToken)) {
+      const gasBuffer = parseUnits("0.001", 18);
+      maxVal = maxVal > gasBuffer ? maxVal - gasBuffer : 0n;
+    }
+    const decimals = fromToken.decimals;
+    const divisor = 10 ** decimals;
+    setFromAmount((Number(maxVal) / divisor).toFixed(decimals));
   };
+
+  const getSwapButton = () => {
+    if (!isConnected) {
+      return (
+        <Button
+          variant="primary"
+          className="w-full"
+          size="lg"
+          onClick={openConnectModal}
+        >
+          Connect Wallet
+        </Button>
+      );
+    }
+
+    if (!fromToken || !toToken) {
+      return (
+        <Button variant="primary" className="w-full" size="lg" disabled>
+          Select tokens
+        </Button>
+      );
+    }
+
+    if (sameToken) {
+      return (
+        <Button variant="primary" className="w-full" size="lg" disabled>
+          Invalid pair
+        </Button>
+      );
+    }
+
+    if (!contractsDeployed) {
+      return (
+        <Button variant="primary" className="w-full" size="lg" disabled>
+          Contracts not deployed
+        </Button>
+      );
+    }
+
+    if (!hasAmount) {
+      return (
+        <Button variant="primary" className="w-full" size="lg" disabled>
+          Enter an amount
+        </Button>
+      );
+    }
+
+    if (insufficientBalance) {
+      return (
+        <button
+          disabled
+          className="w-full h-[52px] px-6 text-base rounded-[16px] font-semibold opacity-80 cursor-not-allowed"
+          style={{
+            background: "rgba(255,87,87,0.15)",
+            color: "var(--accent-red)",
+            border: "1px solid rgba(255,87,87,0.3)",
+          }}
+        >
+          Insufficient {fromToken?.symbol} balance
+        </button>
+      );
+    }
+
+    if (isQuoting) {
+      return (
+        <Button variant="primary" className="w-full" size="lg" loading>
+          Fetching quote…
+        </Button>
+      );
+    }
+
+    if (quoteError) {
+      return (
+        <Button variant="primary" className="w-full" size="lg" disabled>
+          {quoteError === "Contracts not deployed"
+            ? "Contracts not deployed"
+            : "Insufficient liquidity"}
+        </Button>
+      );
+    }
+
+    if (!hasQuote) {
+      return (
+        <Button variant="primary" className="w-full" size="lg" disabled>
+          Enter an amount
+        </Button>
+      );
+    }
+
+    if (needsApproval) {
+      if (approvalStatus === "pending") {
+        return (
+          <Button variant="primary" className="w-full" size="lg" loading>
+            Approving…
+          </Button>
+        );
+      }
+      return (
+        <Button
+          variant="primary"
+          className="w-full"
+          size="lg"
+          onClick={approve}
+        >
+          Approve {fromToken?.symbol}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant="primary"
+        className="w-full"
+        size="lg"
+        onClick={() => setConfirmOpen(true)}
+      >
+        Swap
+      </Button>
+    );
+  };
+
+  const showPriceInfo = !!(fromToken && toToken && (toAmount || isQuoting));
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-128px)] px-4 py-12">
@@ -68,16 +298,35 @@ export default function SwapPage() {
             <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
               Swap
             </h2>
-            <button
-              className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-input)] transition-colors"
-              aria-label="Settings"
-            >
-              <SettingsIcon />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setSettingsOpen(!settingsOpen)}
+                className="p-2 rounded-lg transition-colors"
+                style={{
+                  color: settingsOpen
+                    ? "var(--accent-blue)"
+                    : "var(--text-secondary)",
+                  background: settingsOpen
+                    ? "rgba(54,177,255,0.1)"
+                    : undefined,
+                }}
+                aria-label="Settings"
+              >
+                <SettingsIcon />
+              </button>
+              <SettingsPanel
+                isOpen={settingsOpen}
+                onClose={() => setSettingsOpen(false)}
+                slippage={slippage}
+                onSlippageChange={setSlippage}
+                deadline={deadline}
+                onDeadlineChange={setDeadline}
+              />
+            </div>
           </div>
 
           <div className="px-3 pb-3 space-y-1">
-            {/* From Token */}
+            {/* From */}
             <div
               className="rounded-xl p-4"
               style={{ background: "var(--bg-input)" }}
@@ -86,9 +335,24 @@ export default function SwapPage() {
                 <span className="text-xs text-[var(--text-secondary)]">
                   Sell
                 </span>
-                <span className="text-xs text-[var(--text-secondary)]">
-                  Balance: — <button className="text-[var(--accent-blue)] hover:underline ml-1">MAX</button>
-                </span>
+                <div className="flex items-center gap-1">
+                  {isConnected && fromToken ? (
+                    <TokenBalance token={fromToken} />
+                  ) : (
+                    <span className="text-xs text-[var(--text-secondary)]">
+                      Balance: —
+                    </span>
+                  )}
+                  {isConnected && fromBalance > 0n && (
+                    <button
+                      onClick={handleMax}
+                      className="text-xs font-medium ml-1"
+                      style={{ color: "var(--accent-blue)" }}
+                    >
+                      MAX
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <input
@@ -96,26 +360,19 @@ export default function SwapPage() {
                   placeholder="0.0"
                   value={fromAmount}
                   onChange={(e) => setFromAmount(e.target.value)}
-                  className="flex-1 bg-transparent text-2xl font-semibold text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="flex-1 bg-transparent text-2xl font-semibold text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                <button
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm"
-                  style={{
-                    background: "rgba(54,177,255,0.1)",
-                    color: "var(--accent-blue)",
-                    border: "1px solid rgba(54,177,255,0.2)",
-                  }}
-                >
-                  <span>{fromToken}</span>
-                  <ChevronDownIcon />
-                </button>
+                <TokenButton
+                  token={fromToken}
+                  onClick={() => setFromSelectorOpen(true)}
+                />
               </div>
             </div>
 
-            {/* Swap direction button */}
+            {/* Flip */}
             <div className="flex justify-center -my-1 relative z-10">
               <button
-                onClick={handleFlip}
+                onClick={flipTokens}
                 className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
                 style={{
                   background: "var(--bg-card)",
@@ -127,7 +384,7 @@ export default function SwapPage() {
               </button>
             </div>
 
-            {/* To Token */}
+            {/* To */}
             <div
               className="rounded-xl p-4"
               style={{ background: "var(--bg-input)" }}
@@ -136,65 +393,102 @@ export default function SwapPage() {
                 <span className="text-xs text-[var(--text-secondary)]">
                   Buy
                 </span>
-                <span className="text-xs text-[var(--text-secondary)]">
-                  Balance: —
-                </span>
+                {isConnected && toToken ? (
+                  <TokenBalance token={toToken} />
+                ) : (
+                  <span className="text-xs text-[var(--text-secondary)]">
+                    Balance: —
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  placeholder="0.0"
-                  value={toAmount}
-                  readOnly
-                  className="flex-1 bg-transparent text-2xl font-semibold text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                {isQuoting ? (
+                  <div
+                    className="flex-1 h-8 rounded-lg animate-pulse"
+                    style={{ background: "var(--bg-card)" }}
+                  />
+                ) : (
+                  <input
+                    type="number"
+                    placeholder="0.0"
+                    value={toAmount ? Number(toAmount).toFixed(6) : ""}
+                    readOnly
+                    className="flex-1 bg-transparent text-2xl font-semibold text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                )}
+                <TokenButton
+                  token={toToken}
+                  onClick={() => setToSelectorOpen(true)}
                 />
-                <button
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm"
-                  style={{
-                    background: "rgba(54,177,255,0.1)",
-                    color: "var(--accent-blue)",
-                    border: "1px solid rgba(54,177,255,0.2)",
-                  }}
-                >
-                  <span>{toToken}</span>
-                  <ChevronDownIcon />
-                </button>
               </div>
             </div>
 
-            {/* Price info */}
-            <div
-              className="rounded-xl px-4 py-3 text-sm"
-              style={{
-                background: "rgba(54,177,255,0.04)",
-                border: "1px solid rgba(54,177,255,0.08)",
-              }}
-            >
-              <div className="flex items-center justify-between text-[var(--text-secondary)]">
-                <span>Price</span>
-                <span className="text-[var(--text-primary)]">
-                  1 {fromToken} = — {toToken}
-                </span>
-              </div>
-              <div className="flex items-center justify-between mt-1 text-[var(--text-secondary)]">
-                <span>Price Impact</span>
-                <span className="text-[var(--accent-green)]">—</span>
-              </div>
-              <div className="flex items-center justify-between mt-1 text-[var(--text-secondary)]">
-                <span>Slippage Tolerance</span>
-                <span>0.5%</span>
-              </div>
-            </div>
+            {/* Price Info */}
+            {showPriceInfo && (
+              <SwapPriceInfo
+                fromToken={fromToken}
+                toToken={toToken}
+                toAmount={toAmount}
+                executionPrice={executionPrice}
+                priceImpact={priceImpact}
+                slippage={slippage}
+                feeTier={feeTier}
+                isQuoting={isQuoting}
+              />
+            )}
 
-            {/* Swap Button */}
-            <div className="pt-1">
-              <Button variant="primary" className="w-full" size="lg">
-                Connect Wallet to Swap
-              </Button>
-            </div>
+            {/* Action */}
+            <div className="pt-1">{getSwapButton()}</div>
           </div>
         </Card>
       </div>
+
+      <TokenSelectorModal
+        isOpen={fromSelectorOpen}
+        onClose={() => setFromSelectorOpen(false)}
+        onSelect={(t: Token) => {
+          setFromToken(t);
+          setFromAmount("");
+        }}
+        selectedToken={fromToken}
+        disabledToken={toToken}
+        chainId={AXON_CHAIN_ID}
+      />
+      <TokenSelectorModal
+        isOpen={toSelectorOpen}
+        onClose={() => setToSelectorOpen(false)}
+        onSelect={(t: Token) => {
+          setToToken(t);
+        }}
+        selectedToken={toToken}
+        disabledToken={fromToken}
+        chainId={AXON_CHAIN_ID}
+      />
+      <ConfirmSwapModal
+        isOpen={confirmOpen}
+        onClose={() => {
+          if (swapStatus !== "pending_wallet" && swapStatus !== "pending_tx") {
+            setConfirmOpen(false);
+          }
+        }}
+        onConfirm={executeSwap}
+        fromToken={fromToken}
+        toToken={toToken}
+        fromAmount={fromAmount}
+        toAmount={toAmount}
+        slippage={slippage}
+        priceImpact={priceImpact}
+        executionPrice={executionPrice}
+        gasEstimate={gasEstimate}
+        feeTier={feeTier}
+        status={swapStatus}
+        txHash={txHash}
+        error={swapError}
+        onReset={() => {
+          resetSwap();
+          setConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }
