@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+build/
+
+# Hardhat
+artifacts/
+cache/
+typechain-types/
+
+# Coverage
+coverage/
+coverage.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build output
+dist/
+*.tsbuildinfo
+package-lock.json
+
+# Deployed addresses (generated)
+contracts/deployed-addresses.json
