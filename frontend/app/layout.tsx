@@ -6,11 +6,42 @@ import { ToastContainer } from "@/components/ui/ToastContainer";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "AxonSwap — DEX on Axonchain",
+  title: {
+    default: "AxonSwap — DEX on Axonchain",
+    template: "%s | AxonSwap",
+  },
   description:
-    "The native decentralized exchange on Axonchain. Swap tokens and provide liquidity with concentrated liquidity AMM.",
+    "The native decentralized exchange on Axonchain. Swap tokens and provide concentrated liquidity with minimal slippage.",
+  keywords: [
+    "DEX",
+    "DeFi",
+    "Axonchain",
+    "AxonSwap",
+    "swap",
+    "liquidity",
+    "AMM",
+    "Uniswap V3",
+  ],
+  authors: [{ name: "AxonSwap" }],
+  creator: "AxonSwap",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://axonswap.fi",
+    siteName: "AxonSwap",
+    title: "AxonSwap — DEX on Axonchain",
+    description:
+      "The native decentralized exchange on Axonchain. Swap tokens and provide concentrated liquidity with minimal slippage.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AxonSwap — DEX on Axonchain",
+    description:
+      "The native decentralized exchange on Axonchain. Swap tokens and provide concentrated liquidity with minimal slippage.",
+    creator: "@AxonSwap",
+  },
   icons: {
-    icon: "/favicon.ico",
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>",
   },
 };
 

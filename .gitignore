@@ -33,7 +33,7 @@ Thumbs.db
 # Build output
 dist/
 *.tsbuildinfo
-package-lock.json
 
 # Deployed addresses (generated)
 contracts/deployed-addresses.json
+contracts/deployments/*.json
