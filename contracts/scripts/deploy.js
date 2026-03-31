@@ -92,8 +92,19 @@ async function main() {
   );
 
   // 10. Save addresses
-  const outputPath = path.join(__dirname, "..", "deployed-addresses.json");
-  fs.writeFileSync(outputPath, JSON.stringify(addresses, null, 2));
+  const deploymentsDir = path.join(__dirname, "..", "deployments");
+  if (!fs.existsSync(deploymentsDir)) {
+    fs.mkdirSync(deploymentsDir, { recursive: true });
+  }
+  const outputPath = path.join(deploymentsDir, "axon-mainnet.json");
+  const output = {
+    chainId: 8210,
+    network: "axon-mainnet",
+    deployedAt: new Date().toISOString(),
+    deployer: deployer.address,
+    contracts: addresses,
+  };
+  fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
   console.log("10. Addresses saved to:", outputPath);
 
   // 11. Summary

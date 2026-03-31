@@ -3,6 +3,9 @@
 > The native decentralized exchange (DEX) on [Axonchain](https://axonchain.ai) — a concentrated liquidity AMM forked from Uniswap V3.
 
 [![CI](https://github.com/zimbeet/axonswap/actions/workflows/ci.yml/badge.svg)](https://github.com/zimbeet/axonswap/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org)
+[![Solidity](https://img.shields.io/badge/Solidity-0.7.6-gray?logo=solidity)](https://soliditylang.org)
 
 ---
 
@@ -12,10 +15,14 @@
 axonswap/
 ├── frontend/                 # Next.js 15 app (App Router, TypeScript, Tailwind CSS)
 │   ├── app/
+│   │   ├── page.tsx          # Landing page (Hero, Features, Stats)
 │   │   ├── swap/page.tsx     # Token swap interface
 │   │   ├── pool/page.tsx     # Pool list & My Positions
 │   │   ├── add/page.tsx      # Add liquidity
-│   │   └── remove/page.tsx   # Remove liquidity
+│   │   ├── remove/page.tsx   # Remove liquidity
+│   │   ├── not-found.tsx     # Custom 404
+│   │   ├── error.tsx         # Error boundary
+│   │   └── loading.tsx       # Global loading state
 │   ├── components/
 │   │   ├── ui/               # Button, Card, Modal, Input, Skeleton, ToastContainer
 │   │   ├── layout/           # Navbar, Footer
@@ -40,8 +47,11 @@ axonswap/
     │   ├── libraries/        # TickMath, SqrtPriceMath, FullMath, Oracle, …
     │   └── interfaces/       # All Solidity interfaces
     ├── scripts/
-    │   └── deploy.js         # Full deployment script
-    └── test/                 # WAXON, Factory, Router tests
+    │   ├── deploy.js         # Full deployment script (saves to deployments/axon-mainnet.json)
+    │   ├── verify.js         # Contract verification commands
+    │   └── seed-pools.js     # Initial pool creation (WAXON/USDC, WAXON/USDT)
+    ├── deployments/          # Generated deployment artifacts
+    └── test/                 # WAXON, Factory, Pool, Router tests
 ```
 
 ---
@@ -54,6 +64,49 @@ axonswap/
 | RPC         | `https://mainnet-rpc.axonchain.ai/`    |
 | Explorer    | `https://explorer.axonchain.ai`        |
 | Native coin | `AXON` (18 decimals)                   |
+
+---
+
+## Contract Addresses
+
+> Contracts are not yet deployed. Addresses will be populated after mainnet deployment.
+
+| Contract | Address |
+|---|---|
+| WAXON | *(pending deployment)* |
+| AxonSwapFactory | *(pending deployment)* |
+| SwapRouter | *(pending deployment)* |
+| NonfungiblePositionManager | *(pending deployment)* |
+| Quoter | *(pending deployment)* |
+| QuoterV2 | *(pending deployment)* |
+| TickLens | *(pending deployment)* |
+| Multicall | *(pending deployment)* |
+
+---
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/zimbeet/axonswap.git
+cd axonswap
+
+# Install all dependencies
+cd frontend && npm install
+cd ../contracts && npm install
+
+# Start the frontend
+cd ../frontend && npm run dev   # http://localhost:3000
+```
+
+Or use the root convenience scripts:
+
+```bash
+npm run dev                 # Start frontend dev server
+npm run build               # Build frontend for production
+npm run contracts:compile   # Compile contracts
+npm run contracts:test      # Run contract tests
+```
 
 ---
 
@@ -94,9 +147,15 @@ npx hardhat test
 cp .env.example .env
 # Edit .env: set PRIVATE_KEY and AXON_RPC_URL
 npx hardhat run scripts/deploy.js --network axon
+
+# Verify contracts
+node scripts/verify.js
+
+# Seed initial pools (after deployment)
+npx hardhat run scripts/seed-pools.js --network axon
 ```
 
-After deployment, copy the generated `contracts/deployed-addresses.json` addresses into `frontend/.env.local`.
+After deployment, copy the generated `contracts/deployments/axon-mainnet.json` addresses into `frontend/.env.local`.
 
 ---
 
@@ -131,18 +190,25 @@ Create `frontend/.env.local` (copy from `frontend/.env.example`):
 3. Add all `NEXT_PUBLIC_*` environment variables.
 4. Deploy — the `frontend/vercel.json` config handles the rest.
 
+### Contracts (Axonchain Mainnet)
+
+```bash
+cd contracts
+cp .env.example .env   # Set PRIVATE_KEY + AXON_RPC_URL
+npx hardhat run scripts/deploy.js --network axon
+node scripts/verify.js  # Print verification commands
+```
+
 ---
 
-## Contributing
+## Documentation
 
-1. Fork the repository.
-2. Create a feature branch: `git checkout -b feat/my-feature`.
-3. Commit your changes (Conventional Commits style: `feat:`, `fix:`, `chore:`).
-4. Open a Pull Request against `main`.
-5. CI must pass (lint + build + contract tests) before merging.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute
+- [SECURITY.md](SECURITY.md) — Security policy and bug reporting
+- [LICENSE](LICENSE) — MIT License
 
 ---
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
