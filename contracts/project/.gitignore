@@ -3,6 +3,6 @@ node_modules/
 artifacts/
 cache/
 typechain-types/
-deployments/
+# deployments/ — keep tracked (contains deployed contract addresses)
 coverage/
 coverage.json
