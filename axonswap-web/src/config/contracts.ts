@@ -1,0 +1,39 @@
+// AxonSwap — Contract addresses on BSC Testnet
+// Deployed on 2026-04-08
+
+export const BSC_TESTNET_CHAIN_ID = 97
+
+export const CONTRACTS = {
+  WBNB: '0x83b6D2526FE323cf82Faf4Cd10A6781e222d1c23',
+  Factory: '0x10B7422fE11A24373277be76d1E41571B076cb01',
+  SwapRouter: '0xd7bF1Eba3eAA0b7227952A8e889a2F936F98Fc5D',
+  NonfungiblePositionManager: '0xA9a430f2954f3B399fFf15bdE7645e6d2C7231cE',
+  Quoter: '0x409875E9AB2d79963C35b4AabDD10c75921CBAAF',
+  QuoterV2: '0xF109aD22945DFe14A75CA25CaAfed8A34B6613E6',
+  Multicall2: '0xC1E4fAf7E3F8e0d97251f566C6ffC53c08028868',
+  TickLens: '0x35012b1fb420D8c26D62b5A2b296Bc05135A80dF',
+  NFTDescriptor: '0xEFab4000dff44700CFCe9900535d24eE07316451',
+  NFTPositionDescriptor: '0xCaeC072fFDDD168e55d500eC62683E84Fb21FFeA',
+  AxonToken: '0x24483358c813aD89278f31CDA78f3Bc808d2bBDB',
+  mUSDC: '0xBC14783680A73Ea119dcBCF59653dD4100a37efF',
+  mUSDT: '0xFF24C8F61e412Ad86b5FfA66DC10F0d3f79670cc',
+  mWBTC: '0x7ec1a956ccf76eFa8ab97C6E2D656B72F78A71bE',
+  mWETH: '0xC717e1eE0D32239420CEB5DfE7da91Ae32C2E00B',
+} as const
+
+// Legacy PositionManager (positions minted before rebranding)
+export const LEGACY_POSITION_MANAGERS: readonly string[] = [
+  '0xC56F2DBB19638031232b4E00A925d6a8b1AE7B3e',
+] as const
+
+export const POOL_INIT_CODE_HASH = '0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54'
+
+// Fee tiers (in hundredths of a bip)
+export const FEE_TIERS = {
+  LOWEST: 100,   // 0.01%
+  LOW: 500,      // 0.05%
+  MEDIUM: 3000,  // 0.30%
+  HIGH: 10000,   // 1.00%
+} as const
+
+export type FeeTier = typeof FEE_TIERS[keyof typeof FEE_TIERS]
